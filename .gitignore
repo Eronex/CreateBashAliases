@@ -2,3 +2,5 @@
 /out/
 /.idea/
 /lib/
+# Project exclude files
+*.iml
