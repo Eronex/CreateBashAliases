@@ -20,15 +20,15 @@ public class Main {
       System.out.println("Получен параметр: " + args[0]);
       System.out.println("Значение счётчика теперь = " + countAggregate);
     }
-    String                            pathToBashHistory;
-    String                            pathToBashAliases;
-    List<String>                      sBashHistory;
-    List<String>                      sBashAliases;
-    Map<String, Integer>              commandsCounter          = new HashMap<>();
-    Map<String, String>               aliases                  = new HashMap<>();
-    Map<String, String>               aliasesPrepared          = new HashMap<>();
-    TreeMap<Integer, TreeSet<String>> commandsGroupedByCounter = new TreeMap<>();
-    TreeSet<String>                   commandsForAliases       = new TreeSet<>();
+    TreeMap<Integer, TreeSet<String>>                   commandsGroupedByCounter = new TreeMap<>(Collections.reverseOrder());
+    Map<String, Integer>                                commandsCounter          = new HashMap<>();
+    Map<String, String>                                 aliases                  = new HashMap<>();
+    Map<String, String>                                 aliasesPrepared          = new LinkedHashMap<>();
+    LinkedList<String>                                  commandsForAliases       = new LinkedList<>();
+    List<String>                                        sBashHistory;
+    List<String>                                        sBashAliases;
+    String                                              pathToBashHistory;
+    String                                              pathToBashAliases;
     ////////////////
     pathToBashHistory = System.getProperty("user.home") + System.getProperty("file.separator") + ".bash_history";
     pathToBashAliases = System.getProperty("user.home") + System.getProperty("file.separator") + ".bash_aliases";
@@ -54,7 +54,7 @@ public class Main {
     // Перебор команд, извлечённых из файла истории команд.
     sBashHistory.forEach(command -> {
       /*
-      Если   команда начинается с точки,
+      Если команда начинается с точки,
       значит не брать такую команду в расчёт.
       */
       boolean ifNotStartWithDot = !command.startsWith(".");
@@ -79,29 +79,42 @@ public class Main {
       }
     });
     // Перебрать счётчик комадн с целью заполнения сортированного списка команд по количеству вызовов.
-    commandsCounter.forEach((command, count) -> {
-      if (commandsGroupedByCounter.containsKey(count)) {
-        TreeSet<String> commands = commandsGroupedByCounter.get(count);
-        commands.add(command);
-        commandsGroupedByCounter.put(count, commands);
-      } else {
-        TreeSet<String> commands = new TreeSet<>();
-        commands.add(command);
-        commandsGroupedByCounter.put(count, commands);
+    for (Map.Entry<String, Integer> e : commandsCounter.entrySet()) {
+      String  command = e.getKey();
+      Integer count   = e.getValue();
+      if (count >= countAggregate) {
+        if (commandsGroupedByCounter.containsKey(count)) {
+          commandsGroupedByCounter.get(count).add(command);
+        } else {
+          TreeSet<String> commands = new TreeSet<>();
+          commands.add(command);
+          commandsGroupedByCounter.put(count, commands);
+        }
       }
+    }
+    commandsGroupedByCounter.forEach((count, commands) -> {
+      HashSet<String> commandsToBeDeleted = new HashSet<>();
+      commands.forEach(command -> {
+        commands.forEach(command2 -> {
+          if (command2.contains(command) && (!command2.equals(command))) {
+            commandsToBeDeleted.add(command);
+          }
+        });
+      });
+      commands.removeAll(commandsToBeDeleted);
     });
     System.out.println("Команды-кандидаты на получение псевдонима.");
     for (Map.Entry<Integer, TreeSet<String>> entry : commandsGroupedByCounter.entrySet()) {
       Integer         count    = entry.getKey();
       TreeSet<String> commands = entry.getValue();
       System.out.println("count = " + count);
-      for (String command : commandsGroupedByCounter.get(count)) {// Выбрать те команды, для которых будет создан псевдоним.
-        if (count > countAggregate) {
+      if (true /*count >= countAggregate*/) {
+        commands.forEach(command -> {
           // Вывести команду на экран и значение счётчика её повторений.
           System.out.println("\tcommand = " + command);
           // Добавить команду в список для создания псевдонимов.
-          commandsForAliases.add(command);
-        }
+          if (command.length() >= 4) commandsForAliases.add(command);
+        });
       }
     }
     // Подготовить псевдонимы для команд.
@@ -112,10 +125,10 @@ public class Main {
       // Подготовка псевдонима в несколько шагов.
       // Оставить в команде только латинские буквы и цифры и далить двойные пробелы.
       prepareStep1 = command.replaceAll("[^A-Za-z0-9]", " ").replaceAll("\\s+", " ");
-      // Разбить команду на слова из из каждого слова забирать начальные символы последовательно,
+      // Разбить команду на слова из-за каждого слова забирать начальные символы последовательно,
       // пока не получится псевдоним, не конфликтующий с системными командами.
       prepareStep2 = prepareStep1.split(" ");
-      // Найти длинну самого длнинного слова.
+      // Найти длину самого длинного слова.
       for (int i = 0; i < prepareStep2.length; i++) {
         if (prepareStep2[i].length() > maxLen) maxLen = prepareStep2[i].length();
       }
