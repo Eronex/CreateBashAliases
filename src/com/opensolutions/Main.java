@@ -20,15 +20,15 @@ public class Main {
       System.out.println("Получен параметр: " + args[0]);
       System.out.println("Значение счётчика теперь = " + countAggregate);
     }
-    TreeMap<Integer, TreeSet<String>>                   commandsGroupedByCounter = new TreeMap<>(Collections.reverseOrder());
-    Map<String, Integer>                                commandsCounter          = new HashMap<>();
-    Map<String, String>                                 aliases                  = new HashMap<>();
-    Map<String, String>                                 aliasesPrepared          = new LinkedHashMap<>();
-    LinkedList<String>                                  commandsForAliases       = new LinkedList<>();
-    List<String>                                        sBashHistory;
-    List<String>                                        sBashAliases;
-    String                                              pathToBashHistory;
-    String                                              pathToBashAliases;
+    TreeMap<Integer, TreeSet<String>> commandsGroupedByCounter = new TreeMap<>(Collections.reverseOrder());
+    Map<String, Integer>              commandsCounter          = new HashMap<>();
+    Map<String, String>               aliases                  = new HashMap<>();
+    TreeMap<String, String>           aliasesPrepared          = new TreeMap<>();
+    LinkedList<String>                commandsForAliases       = new LinkedList<>();
+    List<String>                      sBashHistory;
+    List<String>                      sBashAliases;
+    String                            pathToBashHistory;
+    String                            pathToBashAliases;
     ////////////////
     pathToBashHistory = System.getProperty("user.home") + System.getProperty("file.separator") + ".bash_history";
     pathToBashAliases = System.getProperty("user.home") + System.getProperty("file.separator") + ".bash_aliases";
@@ -60,6 +60,8 @@ public class Main {
       boolean ifNotStartWithDot = !command.startsWith(".");
       // boolean ifNotOneWord      = !command.trim().contains(" ");
       if (ifNotStartWithDot/* && ifNotOneWord*/) {
+        // Заменить кое-что в команде.
+        command = command.replace("'", "'\\''");
         String[] commandParts = command.split(" ");
         // Преобразование сокращённых команд в полные, если у них есть алиас.
         for (int i = 0; i < commandParts.length; i++) {
